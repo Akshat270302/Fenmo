@@ -4,6 +4,24 @@ import ExpenseSummary from "./components/ExpenseSummary.jsx";
 import ExpenseTable from "./components/ExpenseTable.jsx";
 import { createExpense, getExpenses } from "./api/expenses.js";
 
+const normalizeExpenses = (payload) => {
+  const list = Array.isArray(payload?.data?.expenses)
+    ? payload.data.expenses
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : [];
+  const total = payload?.data?.total ?? payload?.total ?? null;
+  return { list, total };
+};
+
+const computeTotal = (list) =>
+  list
+    .reduce((sum, expense) => {
+      const amount = Number.parseFloat(expense.amount);
+      return Number.isNaN(amount) ? sum : sum + amount;
+    }, 0)
+    .toFixed(2);
+
 const App = () => {
   const [expenses, setExpenses] = useState([]);
   const [total, setTotal] = useState("0.00");
@@ -18,8 +36,9 @@ const App = () => {
 
   const refreshCategories = useCallback(async () => {
     const data = await getExpenses();
+    const { list } = normalizeExpenses(data);
     const unique = Array.from(
-      new Set(data.expenses.map((expense) => expense.category))
+      new Set(list.map((expense) => expense.category).filter(Boolean))
     );
     setCategories(unique);
     return data;
@@ -33,8 +52,9 @@ const App = () => {
         const data = category
           ? await getExpenses(category)
           : await getExpenses();
-        setExpenses(data.expenses);
-        setTotal(data.total);
+        const { list, total: apiTotal } = normalizeExpenses(data);
+        setExpenses(list);
+        setTotal(apiTotal ?? computeTotal(list));
       } catch (err) {
         setErrorMessage(err.message || "Failed to load expenses");
       } finally {
@@ -50,8 +70,9 @@ const App = () => {
       setErrorMessage("");
       try {
         const data = await refreshCategories();
-        setExpenses(data.expenses);
-        setTotal(data.total);
+        const { list, total: apiTotal } = normalizeExpenses(data);
+        setExpenses(list);
+        setTotal(apiTotal ?? computeTotal(list));
       } catch (err) {
         setErrorMessage(err.message || "Failed to load expenses");
       } finally {
