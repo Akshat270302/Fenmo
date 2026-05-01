@@ -120,8 +120,8 @@ npm start
 ```
 
 ## Deployment
-- Live API URL: <YOUR_API_URL>
-- Live Frontend URL: <YOUR_FRONTEND_URL>
+- Live API URL: https://fenmo-6nos.onrender.com
+- Live Frontend URL: https://fenmo-peach.vercel.app
 
 ## Testing
 - Postman collection included

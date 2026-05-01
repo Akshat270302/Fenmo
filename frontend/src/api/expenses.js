@@ -1,4 +1,16 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const BASE_URL = "https://fenmo-6nos.onrender.com";
+
+const buildIdempotencyKey = (key) => {
+  if (key) {
+    return key;
+  }
+
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `idem-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
 
 const handleResponse = async (response) => {
   const data = await response.json();
@@ -6,28 +18,35 @@ const handleResponse = async (response) => {
     const message = data?.error?.message || "Request failed";
     throw new Error(message);
   }
-  return data?.data;
+  return data;
+};
+
+const request = async (url, options) => {
+  try {
+    const response = await fetch(url, options);
+    return await handleResponse(response);
+  } catch (error) {
+    console.error("API request failed", error);
+    throw error;
+  }
 };
 
 export const getExpenses = async (category) => {
-  const url = new URL(`${API_BASE_URL}/expenses`);
+  const url = new URL(`${BASE_URL}/expenses`);
   if (category) {
     url.searchParams.set("category", category);
   }
 
-  const response = await fetch(url.toString());
-  return handleResponse(response);
+  return request(url.toString());
 };
 
 export const createExpense = async (payload, idempotencyKey) => {
-  const response = await fetch(`${API_BASE_URL}/expenses`, {
+  return request(`${BASE_URL}/expenses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Idempotency-Key": idempotencyKey,
+      "Idempotency-Key": buildIdempotencyKey(idempotencyKey),
     },
     body: JSON.stringify(payload),
   });
-
-  return handleResponse(response);
 };
